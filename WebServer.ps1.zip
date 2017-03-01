@@ -1,0 +1,76 @@
+Configuration WebServer
+{
+	Import-DscResource -ModuleName @{ModuleName="xWebAdministration"; ModuleVersion="1.17.0.0"}
+
+	Node localhost
+	{
+		#Install the IIS Role
+		WindowsFeature IIS
+		{
+			Ensure = "Present"
+			Name = "Web-Server"
+		}
+
+		#Install ASP.NET 4.6
+		WindowsFeature ASPNET
+		{ 
+			Ensure = "Present"
+			Name = "Web-Asp-Net45"
+		}
+
+		WindowsFeature WebServerManagementConsole
+		{
+			Name = "Web-Mgmt-Console"
+			Ensure = "Present"
+		}
+
+		WindowsFeature WebServerScripts
+		{
+			Name = "Web-Scripting-Tools"
+			Ensure = "Present"
+		}
+
+		File AppDir
+		{
+			DestinationPath = 'C:\inetpub\LearningPortal'
+			Type = 'Directory'
+			Ensure = 'Present'
+			DependsOn = '[WindowsFeature]IIS'
+		}
+
+		xWebAppPool AppPool
+		{
+			Name = 'LearningPortalAppPool'
+			DependsOn = '[WindowsFeature]ASPNET'
+			Ensure = "Present"
+			State = 'Started'
+			autoStart = $true
+			identityType = 'ApplicationPoolIdentity'
+		}
+
+		xWebsite DefaultSite
+        {
+            Ensure          = "Absent"
+            Name            = "Default Web Site"
+            DependsOn       = "[WindowsFeature]IIS"
+        }
+
+		xWebsite WebSite
+		{
+            Ensure = 'Present'
+			State = 'Started'
+			DependsOn = '[File]AppDir'
+			Name = 'LearningPortal'
+		}
+
+		xWebApplication xWebApplication
+		{
+			DependsOn = '[xWebsite]WebSite'
+			Name = 'LearningPortal'
+			Website = 'LearningPortal'
+			WebAppPool = 'LearningPortal'
+			PhysicalPath = 'C:\inetpub\LearningPortal'
+			PreloadEnabled = $true
+		}
+	}
+}
